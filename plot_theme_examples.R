@@ -47,3 +47,42 @@ plot4<-ggplot(mtcars, aes(x=as.factor(cyl) )) +
   plot_theme
 
 plot4
+
+#5. Graphical interpretation of lms with plot_theme
+
+#Creating model 1
+model1 <- lm(sleep_rem ~ bodywt + brainwt, data = msleep)
+
+#Tidying model 1
+model1_tidy<-broom::tidy(model1, se = 'standard', conf.int = TRUE,conf.level = 0.95) %>% 
+  mutate(model = "Model 1")
+
+#Creating model 2 for comparison (adding in sleep_total)
+model2 <- lm(formula = sleep_rem ~ bodywt + brainwt + sleep_total, data = msleep)
+
+#Tidying model 2
+model2_tidy<-broom::tidy(model2, se = 'standard', conf.int = TRUE,conf.level = 0.95) %>% 
+  mutate(model = "Model 2")
+
+#Combine results into a single dataframe
+sleep_results <- bind_rows(model1_tidy, model2_tidy) %>% 
+  filter(term!="(Intercept)")
+
+#Plotting
+sleep_results_plot <- ggplot(data=sleep_results, aes(x=term, y=estimate, 
+                                                     color = model, shape = model)) + 
+  geom_hline(yintercept=0, color="red", size=.5) +
+  geom_errorbar(aes(ymin=conf.low, ymax=conf.high, width=0), linewidth=.5, position=position_dodge(width=0.5)) +
+  geom_point(aes(y=estimate), size=1.75, position = position_dodge(width=0.5)) +
+  labs(title = "Model Estimates of Brain and Body Weight (and total sleep) on REM Sleep (hrs) in Mammals",
+       x = "Predictor",
+       y = "Coefficient Estimate",
+       caption = "Models fit with OLS. Error bars show the 95% confidence interval.",
+       color = "Model:",
+       shape = "Model:") +
+  scale_x_discrete(labels = c("Body Weight (kg)", "Brain Weight (kg)", "Total Sleep (hrs)"))+ 
+  coord_flip()+
+  geom_text(aes(y=estimate,label=round(estimate, digits=3)), size=4.5, vjust=-0.5, position = position_dodge(width=0.5),show.legend=F)+
+  plot_theme
+
+sleep_results_plot
